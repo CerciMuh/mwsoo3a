@@ -81,4 +81,5 @@ backend/
 ├─ tests/                            # Integration tests (LocalStack or AWS)
 ├─ package.json
 └─ tsconfig.json
+
 '''text

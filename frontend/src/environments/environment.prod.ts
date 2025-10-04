@@ -1,5 +1,5 @@
 ﻿export const environment = {
-  production: false,
+  production: true,
   cognito: {
     region: 'eu-central-1',
     userPoolId: 'eu-central-1_QEBbXGvw4',

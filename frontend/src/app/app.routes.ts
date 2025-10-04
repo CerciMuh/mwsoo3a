@@ -1,37 +1,38 @@
-import { Routes } from '@angular/router';
+﻿import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { guestGuard } from './core/auth/guest.guard';
 import { AppLayoutComponent } from './layout/app-layout/app-layout.component';
 import { AuthLayoutComponent } from './layout/auth-layout/auth-layout.component';
 import { LoginComponent } from './features/auth/login/login.component';
 import { HomeComponent } from './features/home/home.component';
+import { RegisterComponent } from './features/auth/register/register.component';
+import { ConfirmAccountComponent } from './features/auth/confirm/confirm-account.component';
+import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
+
 export const routes: Routes = [
-  // default → login (first page)
   { path: '', pathMatch: 'full', redirectTo: 'auth/login' },
 
-
-  // Public (guest-only) area
   {
     path: 'auth',
     canMatch: [guestGuard],
     component: AuthLayoutComponent,
     children: [
       { path: 'login', component: LoginComponent },
-      // { path: 'register', loadComponent: () => import('./features/auth/register.component').then(m => m.RegisterComponent) }
-    ]
+      { path: 'register', component: RegisterComponent },
+      { path: 'confirm', component: ConfirmAccountComponent },
+      { path: 'forgot-password', component: ForgotPasswordComponent },
+    ],
   },
 
-  // Protected app area
   {
     path: '',
     canMatch: [authGuard],
     component: AppLayoutComponent,
     children: [
       { path: 'home', component: HomeComponent },
-      { path: '**', redirectTo: 'home' }
-    ]
+      { path: '**', redirectTo: 'home' },
+    ],
   },
 
-  // Fallback
-  { path: '**', redirectTo: 'auth/login' }
+  { path: '**', redirectTo: 'auth/login' },
 ];

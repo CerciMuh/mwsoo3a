@@ -1,0 +1,120 @@
+﻿<section class="card shadow-sm">
+  <div class="card-body p-4 p-md-5">
+    <h1 class="h3 mb-2 text-center">Create your account</h1>
+    <p class="text-muted text-center mb-4">Fill in the details to sign up.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="vstack gap-3">
+      <div>
+        <label class="form-label" for="name">Full name</label>
+        <input
+          id="name"
+          type="text"
+          class="form-control"
+          formControlName="name"
+          autocomplete="name"
+          [class.is-invalid]="form.controls.name.invalid && form.controls.name.touched"
+        />
+        <div class="invalid-feedback" *ngIf="form.controls.name.invalid && form.controls.name.touched">
+          Your name must be at least 2 characters long.
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label" for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          class="form-control"
+          formControlName="email"
+          autocomplete="email"
+          [class.is-invalid]="form.controls.email.invalid && form.controls.email.touched"
+        />
+        <div class="invalid-feedback" *ngIf="form.controls.email.invalid && form.controls.email.touched">
+          Please enter a valid email address.
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label" for="birthdate">Birthdate</label>
+        <input
+          id="birthdate"
+          type="date"
+          class="form-control"
+          formControlName="birthdate"
+          [class.is-invalid]="form.controls.birthdate.invalid && form.controls.birthdate.touched"
+        />
+        <div class="invalid-feedback" *ngIf="form.controls.birthdate.invalid && form.controls.birthdate.touched">
+          Birthdate is required.
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label" for="phone">Phone number</label>
+        <input
+          id="phone"
+          type="tel"
+          class="form-control"
+          placeholder="+15551234567"
+          formControlName="phoneNumber"
+          autocomplete="tel"
+          [class.is-invalid]="form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched"
+        />
+        <div class="invalid-feedback" *ngIf="form.controls.phoneNumber.invalid && form.controls.phoneNumber.touched">
+          Enter a valid phone number in international format (e.g. +15551234567).
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            class="form-control"
+            formControlName="password"
+            autocomplete="new-password"
+            [class.is-invalid]="form.controls.password.invalid && form.controls.password.touched"
+          />
+          <div class="invalid-feedback" *ngIf="form.controls.password.invalid && form.controls.password.touched">
+            Password must contain at least 8 characters.
+          </div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="confirmPassword">Confirm password</label>
+          <input
+            id="confirmPassword"
+            type="password"
+            class="form-control"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+            [class.is-invalid]="(form.controls.confirmPassword.invalid && form.controls.confirmPassword.touched) || form.hasError('passwordMismatch')"
+          />
+          <div class="invalid-feedback" *ngIf="form.hasError('passwordMismatch')">
+            Passwords do not match.
+          </div>
+        </div>
+        <div class="col-md-6">
+          <input
+            id="updatedAt"
+            type="hidden"
+            class="form-control"
+            formControlName="updatedAt"
+          />
+        </div>
+      </div>
+
+      <div *ngIf="error()" class="alert alert-danger mb-0">
+        {{ error() }}
+      </div>
+
+      <button class="btn btn-primary w-100" [disabled]="form.invalid || loading()" type="submit">
+        <span *ngIf="loading(); else submitLabel" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <ng-template #submitLabel>Sign up</ng-template>
+      </button>
+
+      <div class="text-center small">
+        Already have an account? <a routerLink="/auth/login">Sign in</a>
+      </div>
+    </form>
+  </div>
+</section>

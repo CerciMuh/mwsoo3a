@@ -1,19 +1,21 @@
+﻿import { AsyncPipe, NgIf } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-app-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, AsyncPipe, NgIf],
   templateUrl: './app-layout.component.html',
-  styleUrl: './app-layout.component.scss'
+  styleUrl: './app-layout.component.scss',
 })
 export class AppLayoutComponent {
-  private auth = inject(AuthService);
-  private router = inject(Router);
-  onLogout() {
-    this.auth.logout();                 // clear token + isAuthenticated=false
-    this.router.navigateByUrl('/auth/login'); // now guestGuard will allow /auth/*
+  private readonly auth = inject(AuthService);
+
+  readonly user$ = this.auth.user$;
+
+  onLogout(): void {
+    this.auth.logout();
   }
 }

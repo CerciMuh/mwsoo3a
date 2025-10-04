@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+﻿<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
   <div class="container-fluid">
     <a class="navbar-brand" routerLink="/home">MWsoo3a</a>
     <button
@@ -12,12 +12,15 @@
     <div id="nav" class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link" routerLink="/home" routerLinkActive="active"
-            >Home</a
-          >
+          <a class="nav-link" routerLink="/home" routerLinkActive="active">Home</a>
         </li>
       </ul>
-      <div class="d-flex gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <ng-container *ngIf="user$ | async as user">
+          <div class="text-end small">
+            <div class="fw-semibold">{{ user.email || user.name || 'Signed in' }}</div>
+          </div>
+        </ng-container>
         <button
           class="btn btn-outline-secondary btn-sm"
           type="button"

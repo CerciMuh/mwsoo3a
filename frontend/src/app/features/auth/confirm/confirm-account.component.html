@@ -1,0 +1,66 @@
+﻿<section class="card shadow-sm">
+  <div class="card-body p-4 p-md-5">
+    <h1 class="h4 mb-2 text-center">Confirm your email</h1>
+    <p class="text-muted text-center mb-4">
+      Enter the verification code we emailed you to finish setting up your account.
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="vstack gap-3">
+      <div>
+        <label class="form-label" for="email">Email</label>
+        <input
+          id="email"
+          type="email"
+          class="form-control"
+          formControlName="email"
+          autocomplete="email"
+          [class.is-invalid]="form.controls.email.invalid && form.controls.email.touched"
+        />
+        <div class="invalid-feedback" *ngIf="form.controls.email.invalid && form.controls.email.touched">
+          Please enter the email you used to sign up.
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label" for="code">Verification code</label>
+        <input
+          id="code"
+          type="text"
+          class="form-control"
+          formControlName="code"
+          autocomplete="one-time-code"
+          [class.is-invalid]="form.controls.code.invalid && form.controls.code.touched"
+        />
+        <div class="invalid-feedback" *ngIf="form.controls.code.invalid && form.controls.code.touched">
+          Enter the 6-digit code from the email.
+        </div>
+      </div>
+
+      <div *ngIf="message()" class="alert alert-success mb-0">
+        {{ message() }}
+      </div>
+      <div *ngIf="error()" class="alert alert-danger mb-0">
+        {{ error() }}
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100" [disabled]="form.invalid || loading()">
+        <span *ngIf="loading(); else label" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <ng-template #label>Confirm email</ng-template>
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-link d-block w-100"
+        (click)="resend()"
+        [disabled]="resendState() === 'pending'"
+      >
+        <span *ngIf="resendState() === 'pending'; else resendLabel" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <ng-template #resendLabel>Send a new code</ng-template>
+      </button>
+
+      <div class="text-center small">
+        <a routerLink="/auth/login">Back to sign in</a>
+      </div>
+    </form>
+  </div>
+</section>

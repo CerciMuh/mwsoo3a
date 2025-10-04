@@ -1,4 +1,13 @@
-<div class="p-3 bg-white border rounded-3 shadow-sm">
+﻿<div class="p-3 bg-white border rounded-3 shadow-sm">
   <h1 class="h4 mb-2">Home</h1>
-  <p class="text-muted mb-0">Welcome to MWsoo3a.</p>
+  <p class="text-muted mb-3">Welcome to MWsoo3a.</p>
+  <ng-container *ngIf="user$ | async as user; else guest">
+    <h2 class="h6">Signed in as</h2>
+    <p class="mb-3">{{ user.email || user.name }}</p>
+    <h3 class="h6 text-muted">Profile details</h3>
+    <pre class="bg-light border rounded-3 p-3 small mb-0">{{ user | json }}</pre>
+  </ng-container>
+  <ng-template #guest>
+    <p class="mb-0">You are not signed in.</p>
+  </ng-template>
 </div>

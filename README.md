@@ -1,3 +1,4 @@
+'''text
 frontend/
 ├─ src/
 │  ├─ app/
@@ -30,3 +31,54 @@ frontend/
 ├─ angular.json
 ├─ package.json
 └─ tsconfig.json
+backend/
+├─ cdk/                         # Infrastructure as Code (TypeScript CDK)
+│  ├─ bin/
+│  │  └─ moso3a.ts                   # Entry; reads STAGE env
+│  ├─ lib/
+│  │  ├─ auth-cognito.stack.ts       # UserPool, domain, app clients, triggers
+│  │  ├─ api-http.stack.ts           # API Gateway HTTP API, routes -> Lambdas
+│  │  ├─ storage.stack.ts            # DynamoDB tables, S3 buckets
+│  │  ├─ web-hosting.stack.ts        # S3 + CloudFront for Angular hosting
+│  │  └─ observability.stack.ts      # Log groups, alarms, dashboards
+│  ├─ cdk.json
+│  └─ package.json
+│
+├─ services/                    # One folder per bounded context (Lambda)
+│  ├─ users/
+│  │  ├─ src/
+│  │  │  ├─ handlers/http.ts         # APIGW router (tiny)
+│  │  │  ├─ domain/                  # Entities, use-cases (pure logic)
+│  │  │  ├─ infra/                   # dynamo.repo.ts, s3.adapter.ts
+│  │  │  ├─ utils/                   # Validation, errors
+│  │  │  └─ index.ts                 # Handler export
+│  │  ├─ tests/
+│  │  ├─ package.json                # Keep deps minimal; esbuild-friendly
+│  │  └─ tsconfig.json
+│  └─ content/                       # Same structure as users/
+│
+├─ api/
+│  ├─ openapi.yaml                   # Single source of truth for HTTP shapes
+│  ├─ codegen/
+│  │  ├─ generate.mjs                # Generates TS types + Angular client
+│  │  └─ generated/                  # (Ignored in git) output artifacts
+│  └─ contracts/                     # JSON Schemas (optional Zod)
+│
+├─ shared/                           # Code reused by multiple Lambdas
+│  ├─ logging/                       # Powertools wrappers, requestId, tracing
+│  ├─ config/                        # Typed config loader (env/SSM)
+│  └─ validation/                    # Zod/Valibot schemas
+│
+├─ config/                           # Non-secret per-stage config snapshots
+│  ├─ dev.json
+│  ├─ stage.json
+│  └─ prod.json
+│
+├─ scripts/                          # Local dev & CI helpers
+│  ├─ deploy.ts
+│  └─ seed.ts
+│
+├─ tests/                            # Integration tests (LocalStack or AWS)
+├─ package.json
+└─ tsconfig.json
+'''text

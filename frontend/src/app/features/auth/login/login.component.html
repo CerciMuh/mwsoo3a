@@ -1,0 +1,27 @@
+<h1 class="h4 mb-3 text-center">Sign in</h1>
+<form [formGroup]="form" (ngSubmit)="submit()" class="vstack gap-3">
+  <div>
+    <label class="form-label">Email</label>
+    <input
+      class="form-control"
+      type="email"
+      formControlName="email"
+      placeholder="name@example.com"
+    />
+  </div>
+  <div>
+    <label class="form-label">Password</label>
+    <input
+      class="form-control"
+      type="password"
+      formControlName="password"
+      placeholder="••••••••"
+    />
+  </div>
+  <button class="btn btn-primary w-100" [disabled]="form.invalid">
+    Sign in
+  </button>
+  <div class="text-center">
+    <a routerLink="/auth/register" class="small">Create an account</a>
+  </div>
+</form>

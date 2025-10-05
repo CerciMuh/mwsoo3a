@@ -183,9 +183,17 @@ export class AuthService {
     }
 
     try {
-      const payload = JSON.parse(atob(idToken.split('.')[1]));
+      // Safely decode and parse JWT payload
+      const parts = idToken.split('.');
+      if (parts.length !== 3) {
+        console.warn('Invalid JWT token format');
+        return null;
+      }
+      
+      const payload = JSON.parse(atob(parts[1]));
       return payload['custom:userType'] || null;
-    } catch {
+    } catch (error) {
+      console.error('Failed to parse JWT token:', error);
       return null;
     }
   }

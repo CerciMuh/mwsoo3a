@@ -37,13 +37,14 @@ export async function createCognitoUser(
     );
   }
 
-  // Create user with temporary password
+  // Create user - Cognito will send verification email automatically
   await cognitoClient.send(
     new AdminCreateUserCommand({
       UserPoolId: USER_POOL_ID,
       Username: email,
       UserAttributes: userAttributes,
-      MessageAction: 'SUPPRESS', // Don't send welcome email
+      // MessageAction removed - allow Cognito to send verification email
+      DesiredDeliveryMediums: ['EMAIL'], // Ensure email is sent
     })
   );
 

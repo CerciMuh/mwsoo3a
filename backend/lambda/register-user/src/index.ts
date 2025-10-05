@@ -50,6 +50,13 @@ interface SuccessResponse {
   userType: 'student' | 'regular';
 }
 
+interface UniversityData {
+  domain: string;
+  name: string;
+  country: string;
+  alpha_two_code: string;
+}
+
 /**
  * Extract domain from email address
  */
@@ -62,21 +69,14 @@ function extractDomain(email: string): string {
 }
 
 /**
- * Check if email domain belongs to a university
+ * Check if email domain belongs to a university and return university data
  * Uses parallel queries and caching for optimal performance
  */
-async function isUniversityEmail(email: string): Promise<boolean> {
+async function getUniversityData(email: string): Promise<UniversityData | null> {
   const emailDomain = extractDomain(email);
   
-  // Check cache first
-  const cached = domainCache.get(emailDomain);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    cacheHits++;
-    console.log(`Cache hit for domain: ${emailDomain} (hits: ${cacheHits}, misses: ${cacheMisses})`);
-    return cached.isUniversity;
-  }
-  
-  cacheMisses++;
+  // Note: Cache stores boolean, but we'll fetch full data from DB
+  // This is fine since cache is mainly for performance on duplicate emails
   
   // Build all possible domain variations to check
   const parts = emailDomain.split('.');
@@ -97,7 +97,7 @@ async function isUniversityEmail(email: string): Promise<boolean> {
     }
   }
   
-  // Remove duplicates (e.g., exact match might equal one of the variations)
+  // Remove duplicates
   const uniqueDomains = [...new Set(domainsToCheck)];
   
   console.log(`Checking ${uniqueDomains.length} domain variations for: ${emailDomain}`);
@@ -111,39 +111,22 @@ async function isUniversityEmail(email: string): Promise<boolean> {
       })
     ).then(result => ({
       domain,
-      found: !!result.Item,
+      data: result.Item as UniversityData | undefined,
     }))
   );
   
   const results = await Promise.all(queryPromises);
   
-  // Check if any query found a match
-  const isUniversity = results.some(r => r.found);
+  // Find first match with data
+  const match = results.find(r => r.data);
   
-  // Cache the result
-  domainCache.set(emailDomain, {
-    isUniversity,
-    timestamp: Date.now(),
-  });
-  
-  // Clean old cache entries (simple LRU: keep only last 1000 entries)
-  if (domainCache.size > 1000) {
-    const entriesToDelete = domainCache.size - 1000;
-    let deleted = 0;
-    for (const key of domainCache.keys()) {
-      domainCache.delete(key);
-      deleted++;
-      if (deleted >= entriesToDelete) break;
-    }
-    console.log(`Cache cleanup: removed ${deleted} old entries`);
+  if (match?.data) {
+    console.log(`University found: ${match.data.name} (${match.data.country})`);
+    return match.data;
   }
   
-  if (isUniversity) {
-    const matchedDomain = results.find(r => r.found)?.domain;
-    console.log(`University domain found: ${matchedDomain} matches ${emailDomain}`);
-  }
-  
-  return isUniversity;
+  console.log(`No university found for domain: ${emailDomain}`);
+  return null;
 }
 
 /**
@@ -155,21 +138,33 @@ async function createCognitoUser(
   name: string,
   birthdate: string,
   phoneNumber: string,
-  userType: 'student' | 'regular'
+  userType: 'student' | 'regular',
+  universityData?: UniversityData
 ): Promise<void> {
+  const userAttributes = [
+    { Name: 'email', Value: email },
+    { Name: 'email_verified', Value: 'false' },
+    { Name: 'name', Value: name },
+    { Name: 'birthdate', Value: birthdate },
+    { Name: 'phone_number', Value: phoneNumber },
+    { Name: 'custom:userType', Value: userType },
+  ];
+
+  // Add university data for students
+  if (userType === 'student' && universityData) {
+    userAttributes.push(
+      { Name: 'custom:universityName', Value: universityData.name },
+      { Name: 'custom:universityDomain', Value: universityData.domain },
+      { Name: 'custom:universityCountry', Value: universityData.country }
+    );
+  }
+
   // Create user with temporary password
   await cognitoClient.send(
     new AdminCreateUserCommand({
       UserPoolId: USER_POOL_ID,
       Username: email,
-      UserAttributes: [
-        { Name: 'email', Value: email },
-        { Name: 'email_verified', Value: 'false' },
-        { Name: 'name', Value: name },
-        { Name: 'birthdate', Value: birthdate },
-        { Name: 'phone_number', Value: phoneNumber },
-        { Name: 'custom:userType', Value: userType },
-      ],
+      UserAttributes: userAttributes,
       MessageAction: 'SUPPRESS', // Don't send welcome email
     })
   );
@@ -308,15 +303,19 @@ export async function handler(
 
     const { email, password, name, birthdate, phoneNumber } = request;
 
-    // Determine user type based on email domain
-    const isStudent = await isUniversityEmail(email);
-    const userType: 'student' | 'regular' = isStudent ? 'student' : 'regular';
+    // Check if email belongs to a university
+    const universityData = await getUniversityData(email);
+    const userType: 'student' | 'regular' = universityData ? 'student' : 'regular';
     const domain = email.split('@')[1];
 
-    console.log(`Domain ${domain} classified as: ${userType}`);
+    if (universityData) {
+      console.log(`Domain ${domain} classified as student - ${universityData.name} (${universityData.country})`);
+    } else {
+      console.log(`Domain ${domain} classified as regular user`);
+    }
 
-    // Create Cognito user
-    await createCognitoUser(email, password, name, birthdate, phoneNumber, userType);
+    // Create Cognito user with university data
+    await createCognitoUser(email, password, name, birthdate, phoneNumber, userType, universityData || undefined);
 
     console.log(`User created successfully with type: ${userType}`);
 

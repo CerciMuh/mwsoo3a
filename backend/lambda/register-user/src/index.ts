@@ -4,9 +4,17 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 // Environment variables
-const USER_POOL_ID = process.env.USER_POOL_ID || 'eu-central-1_QEBbXGvw4';
-const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'UniversityDomains';
-const REGION = process.env.AWS_REGION || 'eu-central-1';
+const USER_POOL_ID = process.env.USER_POOL_ID;
+const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE;
+const REGION = process.env.AWS_REGION; // Automatically set by AWS Lambda
+
+// Validate required environment variables
+if (!USER_POOL_ID || !DYNAMODB_TABLE) {
+  throw new Error('Missing required environment variables: USER_POOL_ID, DYNAMODB_TABLE');
+}
+if (!REGION) {
+  throw new Error('AWS_REGION not set (this should never happen in Lambda)');
+}
 
 // Initialize AWS clients
 const cognitoClient = new CognitoIdentityProviderClient({ region: REGION });

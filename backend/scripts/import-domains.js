@@ -34,9 +34,15 @@ const __dirname = dirname(__filename);
 const REGION = 'eu-central-1';
 const TABLE_NAME = 'UniversityDomains';
 const BATCH_SIZE = 25; // DynamoDB BatchWrite limit
+const AWS_PROFILE = 'mwsoo3a'; // AWS profile to use
 
 // Initialize DynamoDB client
-const client = new DynamoDBClient({ region: REGION });
+const client = new DynamoDBClient({ 
+  region: REGION,
+  credentials: process.env.AWS_PROFILE ? undefined : {
+    // Will use the profile from AWS_PROFILE env var or credentials file
+  }
+});
 const docClient = DynamoDBDocumentClient.from(client);
 
 /**

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "package": "npm run build && npm run zip",
-    "zip": "powershell -Command \"Compress-Archive -Path dist/* -DestinationPath lambda.zip -Force\"",
+    "zip": "powershell -Command \"if (Test-Path lambda.zip) { Remove-Item lambda.zip }; Compress-Archive -Path dist/*,node_modules -DestinationPath lambda.zip\"",
     "deploy": "aws lambda update-function-code --function-name RegisterUser --zip-file fileb://lambda.zip --region eu-central-1 --profile mwsoo3a"
   },
   "keywords": ["lambda", "cognito", "registration"],

@@ -13,6 +13,16 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: REGION });
 const dynamoClient = new DynamoDBClient({ region: REGION });
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 
+// Domain cache for Lambda container reuse (5 minute TTL)
+interface CacheEntry {
+  isUniversity: boolean;
+  timestamp: number;
+}
+const domainCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let cacheHits = 0;
+let cacheMisses = 0;
+
 interface RegisterRequest {
   email: string;
   password: string;
@@ -44,91 +54,88 @@ function extractDomain(email: string): string {
 }
 
 /**
- * Check if domain matches university domain (supports subdomains)
- * Example: student@alumni.harvard.edu matches harvard.edu
- */
-function matchesDomain(emailDomain: string, universityDomain: string): boolean {
-  // Exact match
-  if (emailDomain === universityDomain) {
-    return true;
-  }
-  
-  // Subdomain match (e.g., alumni.harvard.edu matches harvard.edu)
-  return emailDomain.endsWith('.' + universityDomain);
-}
-
-/**
  * Check if email domain belongs to a university
+ * Uses parallel queries and caching for optimal performance
  */
 async function isUniversityEmail(email: string): Promise<boolean> {
   const emailDomain = extractDomain(email);
   
-  // Try exact match first
-  let result = await docClient.send(
-    new GetCommand({
-      TableName: DYNAMODB_TABLE,
-      Key: { domain: emailDomain },
-    })
-  );
-  
-  if (result.Item) {
-    return true;
+  // Check cache first
+  const cached = domainCache.get(emailDomain);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    cacheHits++;
+    console.log(`Cache hit for domain: ${emailDomain} (hits: ${cacheHits}, misses: ${cacheMisses})`);
+    return cached.isUniversity;
   }
   
-  // Check if it's a subdomain of any university domain
-  // Strategy: Try different base domain combinations for subdomains
+  cacheMisses++;
+  
+  // Build all possible domain variations to check
   const parts = emailDomain.split('.');
+  const domainsToCheck: string[] = [emailDomain]; // Always check exact match
   
   if (parts.length > 2) {
-    // For domains like student.manchester.ac.uk or alumni.stanford.edu
-    // Try multiple base domain combinations:
-    
-    // 1. Try last 3 parts (e.g., manchester.ac.uk from student.manchester.ac.uk)
+    // Add last 3 parts (e.g., manchester.ac.uk from student.manchester.ac.uk)
     if (parts.length >= 3) {
-      const baseDomain3 = parts.slice(-3).join('.');
-      result = await docClient.send(
-        new GetCommand({
-          TableName: DYNAMODB_TABLE,
-          Key: { domain: baseDomain3 },
-        })
-      );
-      
-      if (result.Item) {
-        return true;
-      }
+      domainsToCheck.push(parts.slice(-3).join('.'));
     }
     
-    // 2. Try last 2 parts (e.g., stanford.edu from alumni.stanford.edu)
-    const baseDomain2 = parts.slice(-2).join('.');
-    result = await docClient.send(
-      new GetCommand({
-        TableName: DYNAMODB_TABLE,
-        Key: { domain: baseDomain2 },
-      })
-    );
+    // Add last 2 parts (e.g., stanford.edu from alumni.stanford.edu)
+    domainsToCheck.push(parts.slice(-2).join('.'));
     
-    if (result.Item) {
-      return true;
-    }
-    
-    // 3. For very long subdomains (e.g., mail.student.stanford.edu)
-    // Try last 4 parts for cases like something.ac.uk or similar
+    // Add last 4 parts for very long subdomains
     if (parts.length >= 4) {
-      const baseDomain4 = parts.slice(-4).join('.');
-      result = await docClient.send(
-        new GetCommand({
-          TableName: DYNAMODB_TABLE,
-          Key: { domain: baseDomain4 },
-        })
-      );
-      
-      if (result.Item) {
-        return true;
-      }
+      domainsToCheck.push(parts.slice(-4).join('.'));
     }
   }
   
-  return false;
+  // Remove duplicates (e.g., exact match might equal one of the variations)
+  const uniqueDomains = [...new Set(domainsToCheck)];
+  
+  console.log(`Checking ${uniqueDomains.length} domain variations for: ${emailDomain}`);
+  
+  // Execute all queries in parallel
+  const queryPromises = uniqueDomains.map(domain =>
+    docClient.send(
+      new GetCommand({
+        TableName: DYNAMODB_TABLE,
+        Key: { domain },
+      })
+    ).then(result => ({
+      domain,
+      found: !!result.Item,
+    }))
+  );
+  
+  const results = await Promise.all(queryPromises);
+  
+  // Check if any query found a match
+  const isUniversity = results.some(r => r.found);
+  
+  // Cache the result
+  domainCache.set(emailDomain, {
+    isUniversity,
+    timestamp: Date.now(),
+  });
+  
+  // Clean old cache entries (simple LRU: keep only last 1000 entries)
+  if (domainCache.size > 1000) {
+    const entriesToDelete = domainCache.size - 1000;
+    let deleted = 0;
+    for (const key of domainCache.keys()) {
+      domainCache.delete(key);
+      deleted++;
+      if (deleted >= entriesToDelete) break;
+    }
+    console.log(`Cache cleanup: removed ${deleted} old entries`);
+  }
+  
+  if (isUniversity) {
+    const matchedDomain = results.find(r => r.found)?.domain;
+    console.log(`University domain found: ${matchedDomain} matches ${emailDomain}`);
+  }
+  
+  return isUniversity;
 }
 
 /**

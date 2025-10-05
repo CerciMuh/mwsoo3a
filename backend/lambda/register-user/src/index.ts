@@ -191,7 +191,7 @@ async function createCognitoUser(
 export async function handler(
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> {
-  console.log('Registration request received:', JSON.stringify(event));
+  console.log('Registration request received:', { method: event.httpMethod, path: event.path });
 
   // CORS headers
   const headers = {
@@ -247,13 +247,14 @@ export async function handler(
     // Check if university email
     const isStudent = await isUniversityEmail(email);
     const userType: 'student' | 'regular' = isStudent ? 'student' : 'regular';
+    const domain = email.split('@')[1];
 
-    console.log(`Email ${email} classified as: ${userType}`);
+    console.log(`Domain ${domain} classified as: ${userType}`);
 
     // Create Cognito user
     await createCognitoUser(email, password, name, birthdate, phoneNumber, userType);
 
-    console.log(`User created successfully: ${email} (${userType})`);
+    console.log(`User created successfully with type: ${userType}`);
 
     return {
       statusCode: 200,
@@ -264,11 +265,12 @@ export async function handler(
         userType,
       } as SuccessResponse),
     };
-  } catch (error: any) {
-    console.error('Registration error:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Registration error:', { name: err.name, message: err.message });
 
     // Handle Cognito errors
-    if (error.name === 'UsernameExistsException') {
+    if (err.name === 'UsernameExistsException') {
       return {
         statusCode: 409,
         headers,
@@ -279,7 +281,7 @@ export async function handler(
       };
     }
 
-    if (error.name === 'InvalidPasswordException') {
+    if (err.name === 'InvalidPasswordException') {
       return {
         statusCode: 400,
         headers,
@@ -291,11 +293,6 @@ export async function handler(
     }
 
     // Generic error - don't leak internal details
-    console.error('Unhandled registration error:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
     
     return {
       statusCode: 500,

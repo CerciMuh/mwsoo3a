@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+*.log
+
+# Production
+dist/
+build/
+*.zip
+
+# Environment files (if you add them later)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AWS
+.aws-sam/
+samconfig.toml
+
+# Secrets (do not commit)
+**/secrets.json
+**/credentials.json
+**/*-credentials.json
+**/.credentials
+
+# Angular
+.angular/

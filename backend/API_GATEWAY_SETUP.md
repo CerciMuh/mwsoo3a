@@ -74,9 +74,9 @@ If you prefer CLI, run these commands:
 # Set variables
 API_ID=abhyzb0eoe
 ROOT_RESOURCE_ID=4xqpu9q5cg
-LAMBDA_ARN=arn:aws:lambda:eu-central-1:345204682082:function:RegisterUser
+LAMBDA_ARN=arn:aws:lambda:eu-central-1:YOUR_ACCOUNT_ID:function:RegisterUser
 REGION=eu-central-1
-ACCOUNT_ID=345204682082
+ACCOUNT_ID=YOUR_ACCOUNT_ID
 
 # Create /auth resource
 AUTH_RESOURCE=$(aws apigateway create-resource \

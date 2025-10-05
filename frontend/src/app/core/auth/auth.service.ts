@@ -176,6 +176,24 @@ export class AuthService {
     );
   }
 
+  getUserType(): 'student' | 'regular' | null {
+    const idToken = localStorage.getItem('cognito-id-token');
+    if (!idToken) {
+      return null;
+    }
+
+    try {
+      const payload = JSON.parse(atob(idToken.split('.')[1]));
+      return payload['custom:userType'] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  isStudent(): boolean {
+    return this.getUserType() === 'student';
+  }
+
   private async ensureSession(): Promise<boolean> {
     if (this.session()?.isValid() && this.currentUser) {
       return true;

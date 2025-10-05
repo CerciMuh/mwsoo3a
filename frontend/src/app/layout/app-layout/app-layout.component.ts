@@ -15,7 +15,11 @@ export class AppLayoutComponent {
 
   readonly user$ = this.auth.user$;
 
-  onLogout(): void {
+  protected isStudent(): boolean {
+    return this.auth.isStudent();
+  }
+
+  protected onLogout(): void {
     this.auth.logout();
   }
 }

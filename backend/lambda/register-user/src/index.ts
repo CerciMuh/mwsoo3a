@@ -290,13 +290,19 @@ export async function handler(
       };
     }
 
-    // Generic error
+    // Generic error - don't leak internal details
+    console.error('Unhandled registration error:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    });
+    
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
         error: 'InternalServerError',
-        message: error.message || 'An error occurred during registration',
+        message: 'An error occurred during registration. Please try again later.',
       } as ErrorResponse),
     };
   }

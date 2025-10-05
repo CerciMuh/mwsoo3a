@@ -35,7 +35,6 @@ export class RegisterComponent {
       phoneNumber: ['', [Validators.required, Validators.pattern(/^\+[1-9]\d{1,14}$/)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
-      updatedAt: [Math.floor(Date.now() / 1000).toString()],
     },
     { validators: this.matchPasswords },
   );

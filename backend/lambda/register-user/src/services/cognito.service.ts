@@ -2,13 +2,20 @@
  * Cognito user management service
  */
 
-import { AdminCreateUserCommand, AdminSetUserPasswordCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { SignUpCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { cognitoClient } from '../config/aws-clients';
 import { USER_POOL_ID } from '../config/environment';
 import { UniversityData } from '../models/university.types';
 
+// Get Client ID from environment
+const CLIENT_ID = process.env.CLIENT_ID;
+if (!CLIENT_ID) {
+  throw new Error('Missing required environment variable: CLIENT_ID');
+}
+
 /**
  * Create user in Cognito with custom attributes
+ * Uses SignUp (not AdminCreateUser) to avoid temporary passwords
  */
 export async function createCognitoUser(
   email: string,
@@ -21,10 +28,10 @@ export async function createCognitoUser(
 ): Promise<void> {
   const userAttributes = [
     { Name: 'email', Value: email },
-    { Name: 'email_verified', Value: 'false' },
     { Name: 'name', Value: name },
     { Name: 'birthdate', Value: birthdate },
     { Name: 'phone_number', Value: phoneNumber },
+    { Name: 'updated_at', Value: Math.floor(Date.now() / 1000).toString() },
     { Name: 'custom:userType', Value: userType },
   ];
 
@@ -37,24 +44,13 @@ export async function createCognitoUser(
     );
   }
 
-  // Create user - Cognito will send verification email automatically
+  // Use SignUp command - creates user with their password and sends verification code only
   await cognitoClient.send(
-    new AdminCreateUserCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: email,
-      UserAttributes: userAttributes,
-      // MessageAction removed - allow Cognito to send verification email
-      DesiredDeliveryMediums: ['EMAIL'], // Ensure email is sent
-    })
-  );
-
-  // Set permanent password
-  await cognitoClient.send(
-    new AdminSetUserPasswordCommand({
-      UserPoolId: USER_POOL_ID,
+    new SignUpCommand({
+      ClientId: CLIENT_ID,
       Username: email,
       Password: password,
-      Permanent: true,
+      UserAttributes: userAttributes,
     })
   );
 }

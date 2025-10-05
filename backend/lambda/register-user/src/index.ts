@@ -76,25 +76,56 @@ async function isUniversityEmail(email: string): Promise<boolean> {
   }
   
   // Check if it's a subdomain of any university domain
-  // For performance, we'll scan the table (consider adding GSI for production)
-  // For now, we'll just check the exact domain
-  // To support subdomains properly, you'd need to:
-  // 1. Store all subdomains in DynamoDB, OR
-  // 2. Extract base domain from email and check against that
-  
-  // Simple approach: Extract potential base domain
+  // Strategy: Try different base domain combinations for subdomains
   const parts = emailDomain.split('.');
+  
   if (parts.length > 2) {
-    // Try checking base domain (e.g., harvard.edu from alumni.harvard.edu)
-    const baseDomain = parts.slice(-2).join('.');
+    // For domains like student.manchester.ac.uk or alumni.stanford.edu
+    // Try multiple base domain combinations:
+    
+    // 1. Try last 3 parts (e.g., manchester.ac.uk from student.manchester.ac.uk)
+    if (parts.length >= 3) {
+      const baseDomain3 = parts.slice(-3).join('.');
+      result = await docClient.send(
+        new GetCommand({
+          TableName: DYNAMODB_TABLE,
+          Key: { domain: baseDomain3 },
+        })
+      );
+      
+      if (result.Item) {
+        return true;
+      }
+    }
+    
+    // 2. Try last 2 parts (e.g., stanford.edu from alumni.stanford.edu)
+    const baseDomain2 = parts.slice(-2).join('.');
     result = await docClient.send(
       new GetCommand({
         TableName: DYNAMODB_TABLE,
-        Key: { domain: baseDomain },
+        Key: { domain: baseDomain2 },
       })
     );
     
-    return !!result.Item;
+    if (result.Item) {
+      return true;
+    }
+    
+    // 3. For very long subdomains (e.g., mail.student.stanford.edu)
+    // Try last 4 parts for cases like something.ac.uk or similar
+    if (parts.length >= 4) {
+      const baseDomain4 = parts.slice(-4).join('.');
+      result = await docClient.send(
+        new GetCommand({
+          TableName: DYNAMODB_TABLE,
+          Key: { domain: baseDomain4 },
+        })
+      );
+      
+      if (result.Item) {
+        return true;
+      }
+    }
   }
   
   return false;
@@ -151,7 +182,7 @@ export async function handler(
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*', // TODO: Restrict to your frontend domain
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 

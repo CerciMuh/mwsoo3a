@@ -1,0 +1,26 @@
+[
+  {
+    "web_pages": ["http://www.zokei.ac.jp/"],
+    "name": "Tokyo University of Art and Design",
+    "alpha_two_code": "JP",
+    "state-province": null,
+    "domains": ["zokei.ac.jp"],
+    "country": "Japan"
+  },
+  {
+    "web_pages": ["https://www.harvard.edu"],
+    "name": "Harvard University",
+    "alpha_two_code": "US",
+    "state-province": "Massachusetts",
+    "domains": ["harvard.edu"],
+    "country": "United States"
+  },
+  {
+    "web_pages": ["https://www.ox.ac.uk"],
+    "name": "University of Oxford",
+    "alpha_two_code": "GB",
+    "state-province": null,
+    "domains": ["ox.ac.uk", "oxon.org"],
+    "country": "United Kingdom"
+  }
+]

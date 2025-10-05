@@ -186,6 +186,109 @@ async function createCognitoUser(
 }
 
 /**
+ * CORS headers for API responses
+ */
+const CORS_HEADERS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*', // TODO: Restrict to your frontend domain
+  'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+/**
+ * Handle CORS preflight OPTIONS request
+ */
+function handleCorsPreflightRequest(): APIGatewayProxyResult {
+  return {
+    statusCode: 200,
+    headers: CORS_HEADERS,
+    body: '',
+  };
+}
+
+/**
+ * Parse and validate request body
+ */
+function parseRequestBody(body: string | null): RegisterRequest {
+  if (!body) {
+    throw new Error('Request body is required');
+  }
+  return JSON.parse(body);
+}
+
+/**
+ * Validate registration request fields
+ */
+function validateRegistrationRequest(request: RegisterRequest): void {
+  const { email, password, name, birthdate, phoneNumber } = request;
+  
+  if (!email || !password || !name || !birthdate || !phoneNumber) {
+    const error = new Error('Missing required fields: email, password, name, birthdate, phoneNumber');
+    error.name = 'ValidationError';
+    throw error;
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    const error = new Error('Invalid email format');
+    error.name = 'ValidationError';
+    throw error;
+  }
+}
+
+/**
+ * Create error response
+ */
+function createErrorResponse(statusCode: number, errorType: string, message: string): APIGatewayProxyResult {
+  return {
+    statusCode,
+    headers: CORS_HEADERS,
+    body: JSON.stringify({ error: errorType, message } as ErrorResponse),
+  };
+}
+
+/**
+ * Create success response
+ */
+function createSuccessResponse(userType: 'student' | 'regular'): APIGatewayProxyResult {
+  return {
+    statusCode: 200,
+    headers: CORS_HEADERS,
+    body: JSON.stringify({
+      success: true,
+      message: 'User registered successfully',
+      userType,
+    } as SuccessResponse),
+  };
+}
+
+/**
+ * Handle registration errors
+ */
+function handleRegistrationError(error: unknown): APIGatewayProxyResult {
+  const err = error as Error;
+  console.error('Registration error:', { name: err.name, message: err.message });
+
+  // Handle validation errors
+  if (err.name === 'ValidationError') {
+    return createErrorResponse(400, 'ValidationError', err.message);
+  }
+
+  // Handle Cognito errors
+  if (err.name === 'UsernameExistsException') {
+    return createErrorResponse(409, 'UserExists', 'An account with this email already exists');
+  }
+
+  if (err.name === 'InvalidPasswordException') {
+    return createErrorResponse(400, 'InvalidPassword', 'Password does not meet requirements');
+  }
+
+  // Generic error - don't leak internal details
+  return createErrorResponse(500, 'InternalServerError', 'An error occurred during registration. Please try again later.');
+}
+
+/**
  * Lambda handler
  */
 export async function handler(
@@ -193,58 +296,19 @@ export async function handler(
 ): Promise<APIGatewayProxyResult> {
   console.log('Registration request received:', { method: event.httpMethod, path: event.path });
 
-  // CORS headers
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*', // TODO: Restrict to your frontend domain
-    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
-
   // Handle preflight OPTIONS request
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
+    return handleCorsPreflightRequest();
   }
 
   try {
-    // Parse request body
-    if (!event.body) {
-      throw new Error('Request body is required');
-    }
+    // Parse and validate request
+    const request = parseRequestBody(event.body);
+    validateRegistrationRequest(request);
 
-    const body: RegisterRequest = JSON.parse(event.body);
+    const { email, password, name, birthdate, phoneNumber } = request;
 
-    // Validate required fields
-    const { email, password, name, birthdate, phoneNumber } = body;
-    if (!email || !password || !name || !birthdate || !phoneNumber) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'ValidationError',
-          message: 'Missing required fields: email, password, name, birthdate, phoneNumber',
-        } as ErrorResponse),
-      };
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'ValidationError',
-          message: 'Invalid email format',
-        } as ErrorResponse),
-      };
-    }
-
-    // Check if university email
+    // Determine user type based on email domain
     const isStudent = await isUniversityEmail(email);
     const userType: 'student' | 'regular' = isStudent ? 'student' : 'regular';
     const domain = email.split('@')[1];
@@ -256,51 +320,8 @@ export async function handler(
 
     console.log(`User created successfully with type: ${userType}`);
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        message: 'User registered successfully',
-        userType,
-      } as SuccessResponse),
-    };
+    return createSuccessResponse(userType);
   } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Registration error:', { name: err.name, message: err.message });
-
-    // Handle Cognito errors
-    if (err.name === 'UsernameExistsException') {
-      return {
-        statusCode: 409,
-        headers,
-        body: JSON.stringify({
-          error: 'UserExists',
-          message: 'An account with this email already exists',
-        } as ErrorResponse),
-      };
-    }
-
-    if (err.name === 'InvalidPasswordException') {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          error: 'InvalidPassword',
-          message: 'Password does not meet requirements',
-        } as ErrorResponse),
-      };
-    }
-
-    // Generic error - don't leak internal details
-    
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: 'InternalServerError',
-        message: 'An error occurred during registration. Please try again later.',
-      } as ErrorResponse),
-    };
+    return handleRegistrationError(error);
   }
 }

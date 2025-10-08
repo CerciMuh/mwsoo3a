@@ -1,6 +1,7 @@
 ﻿import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { guestGuard } from './core/auth/guest.guard';
+import { studentGuard } from './core/auth/student.guard';
 import { AppLayoutComponent } from './layout/app-layout/app-layout.component';
 import { AuthLayoutComponent } from './layout/auth-layout/auth-layout.component';
 import { LoginComponent } from './features/auth/login/login.component';
@@ -8,6 +9,7 @@ import { HomeComponent } from './features/home/home.component';
 import { RegisterComponent } from './features/auth/register/register.component';
 import { ConfirmAccountComponent } from './features/auth/confirm/confirm-account.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password/forgot-password.component';
+import { UniversityComponent } from './features/university/university.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'auth/login' },
@@ -30,6 +32,14 @@ export const routes: Routes = [
     component: AppLayoutComponent,
     children: [
       { path: 'home', component: HomeComponent },
+
+      // University section (students only)
+      {
+        path: 'university',
+        canMatch: [studentGuard],
+        component: UniversityComponent,
+      },
+
       { path: '**', redirectTo: 'home' },
     ],
   },

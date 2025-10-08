@@ -1,0 +1,8 @@
+# Dependencies
+node_modules/
+
+# Actual data file (not committed)
+universities.json
+
+# Keep example
+!universities.example.json

@@ -10,15 +10,6 @@ import {
 import { environment } from '../../../environments/environment';
 import { BehaviorSubject, Observable, from, map } from 'rxjs';
 
-export interface SignUpRequest {
-  name: string;
-  email: string;
-  password: string;
-  birthdate: string;
-  phoneNumber: string;
-  updated_at: string;
-}
-
 export interface AuthUserProfile {
   [key: string]: string | undefined;
   email?: string;
@@ -73,27 +64,6 @@ export class AuthService {
         newPasswordRequired: () => {
           observer.error(new Error('Password update required. Please complete setup in the hosted UI.'));
         },
-      });
-    });
-  }
-
-  signUp(request: SignUpRequest): Observable<void> {
-    const attributeList = [
-      new CognitoUserAttribute({ Name: 'email', Value: request.email }),
-      new CognitoUserAttribute({ Name: 'name', Value: request.name }),
-      new CognitoUserAttribute({ Name: 'birthdate', Value: request.birthdate }),
-      new CognitoUserAttribute({ Name: 'phone_number', Value: request.phoneNumber }),
-      new CognitoUserAttribute({ Name: 'updated_at', Value: request.updated_at }),
-    ];
-
-    return new Observable((observer) => {
-      this.pool.signUp(request.email, request.password, attributeList, [], (err) => {
-        if (err) {
-          observer.error(err);
-          return;
-        }
-        observer.next();
-        observer.complete();
       });
     });
   }
@@ -174,6 +144,25 @@ export class AuthService {
     return from(this.ensureSession()).pipe(
       map((isAuthenticated) => (!isAuthenticated ? true : this.router.parseUrl('/home'))),
     );
+  }
+
+  getUserType(): 'student' | 'regular' | null {
+    const currentSession = this.session();
+    if (!currentSession || !currentSession.isValid()) {
+      return null;
+    }
+
+    try {
+      const payload = currentSession.getIdToken().decodePayload();
+      return payload['custom:userType'] || null;
+    } catch (error) {
+      console.error('Failed to decode ID token:', error);
+      return null;
+    }
+  }
+
+  isStudent(): boolean {
+    return this.getUserType() === 'student';
   }
 
   private async ensureSession(): Promise<boolean> {

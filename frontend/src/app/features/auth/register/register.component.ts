@@ -1,9 +1,16 @@
 ﻿import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { AuthService } from '../../../core/auth/auth.service';
+import { environment } from '../../../../environments/environment';
+
+interface RegisterResponse {
+  success: boolean;
+  message: string;
+  userType: 'student' | 'regular';
+}
 
 @Component({
   selector: 'app-register',
@@ -14,7 +21,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 })
 export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
-  private readonly auth = inject(AuthService);
+  private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
   readonly loading = signal(false);
@@ -28,8 +35,6 @@ export class RegisterComponent {
       phoneNumber: ['', [Validators.required, Validators.pattern(/^\+[1-9]\d{1,14}$/)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required]],
-      updatedAt: [String(Math.floor(Date.now() / 1000))],
-
     },
     { validators: this.matchPasswords },
   );
@@ -43,16 +48,15 @@ export class RegisterComponent {
     this.loading.set(true);
     this.error.set(null);
 
-    const { name, email, birthdate, phoneNumber, password, updatedAt } = this.form.getRawValue();
+    const { name, email, birthdate, phoneNumber, password } = this.form.getRawValue();
 
-    this.auth
-      .signUp({
+    this.http
+      .post<RegisterResponse>(`${environment.apiUrl}/auth/register`, {
         name: name!,
         email: email!,
         birthdate: birthdate!,
         phoneNumber: phoneNumber!,
         password: password!,
-        updated_at: updatedAt!
       })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({

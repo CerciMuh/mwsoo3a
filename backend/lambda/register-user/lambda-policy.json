@@ -1,0 +1,20 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cognito-idp:AdminCreateUser",
+        "cognito-idp:AdminSetUserPassword"
+      ],
+      "Resource": "arn:aws:cognito-idp:eu-central-1:YOUR_ACCOUNT_ID:userpool/eu-central-1_QEBbXGvw4"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem"
+      ],
+      "Resource": "arn:aws:dynamodb:eu-central-1:YOUR_ACCOUNT_ID:table/UniversityDomains"
+    }
+  ]
+}

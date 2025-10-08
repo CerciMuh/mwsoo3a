@@ -1,5 +1,6 @@
 ﻿export const environment = {
   production: false,
+  apiUrl: 'https://abhyzb0eoe.execute-api.eu-central-1.amazonaws.com/prod',
   cognito: {
     region: 'eu-central-1',
     userPoolId: 'eu-central-1_QEBbXGvw4',

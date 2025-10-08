@@ -1,0 +1,16 @@
+{
+  "name": "mwsoo3a-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for MWsoo3a backend",
+  "type": "module",
+  "scripts": {
+    "import-domains": "node import-domains.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.645.0",
+    "@aws-sdk/lib-dynamodb": "^3.645.0"
+  }
+}

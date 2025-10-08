@@ -1,0 +1,25 @@
+{
+  "name": "register-user-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function to register users with university domain verification",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "package": "npm run build && npm run zip",
+    "zip": "powershell -Command \"if (Test-Path lambda.zip) { Remove-Item lambda.zip }; Compress-Archive -Path dist/*,node_modules -DestinationPath lambda.zip\"",
+    "deploy": "aws lambda update-function-code --function-name RegisterUser --zip-file fileb://lambda.zip --region eu-central-1 --profile mwsoo3a"
+  },
+  "keywords": ["lambda", "cognito", "registration"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.645.0",
+    "@aws-sdk/client-dynamodb": "^3.645.0",
+    "@aws-sdk/lib-dynamodb": "^3.645.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.145",
+    "@types/node": "^20.14.9",
+    "typescript": "^5.5.3"
+  }
+}

@@ -147,23 +147,16 @@ export class AuthService {
   }
 
   getUserType(): 'student' | 'regular' | null {
-    const idToken = localStorage.getItem('cognito-id-token');
-    if (!idToken) {
+    const currentSession = this.session();
+    if (!currentSession || !currentSession.isValid()) {
       return null;
     }
 
     try {
-      // Safely decode and parse JWT payload
-      const parts = idToken.split('.');
-      if (parts.length !== 3) {
-        console.warn('Invalid JWT token format');
-        return null;
-      }
-      
-      const payload = JSON.parse(atob(parts[1]));
+      const payload = currentSession.getIdToken().decodePayload();
       return payload['custom:userType'] || null;
     } catch (error) {
-      console.error('Failed to parse JWT token:', error);
+      console.error('Failed to decode ID token:', error);
       return null;
     }
   }

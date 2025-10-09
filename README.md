@@ -1,7 +1,31 @@
-# Project Architecture
+# MWsoo3a - University Course Notes Encyclopedia
 
-This repository contains both the **frontend (Angular)** and **backend (AWS CDK + Lambda)** codebases.  
-The structure emphasizes modular design, clear separation of concerns, and infrastructure as code.
+**A student-driven platform for sharing and discovering course notes, organized by university, degree, and course.**
+
+---
+
+## 🎯 Project Vision
+
+MWsoo3a is a **university-verified encyclopedia of student notes**. Students upload notes for their courses, and the platform automatically organizes them by:
+- **University** (verified via email domain - 10,000+ universities supported)
+- **Degree Program** (e.g., Computer Science, Medicine, Law)
+- **Course** (e.g., COMP1001: Data Structures 101)
+
+### Key Features
+
+- 📚 **Hierarchical Organization:** University → Degree → Course → Notes
+- 🎓 **University Email Verification:** Only verified students can access (prevents spam)
+- 🏫 **University-Isolated Communities:** Manchester students see only Manchester content
+- 📄 **Multi-Format Support:** PDF, DOCX, PPTX, XLSX
+- 🔒 **Role-Based Access:** Admins manage structure, students contribute content
+- 🤖 **AI-Enhanced** (Future): Summaries, topic extraction, smart search
+
+---
+
+## 🏗️ Project Architecture
+
+This repository contains both the **frontend (Angular)** and **backend (AWS Lambda)** codebases.  
+The structure emphasizes modular design, clear separation of concerns, and serverless infrastructure.
 
 ---
 

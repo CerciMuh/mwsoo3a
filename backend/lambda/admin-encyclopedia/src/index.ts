@@ -8,7 +8,8 @@ import { createOptionsResponse, createCorsResponse } from './middleware/cors';
 import { requireAdmin } from './middleware/auth';
 import { handleError } from './utils/errors';
 import * as degreeService from './services/degree.service';
-import { CreateDegreeRequest, UpdateDegreeRequest } from './models/types';
+import * as courseService from './services/course.service';
+import { CreateDegreeRequest, UpdateDegreeRequest, CreateCourseRequest, UpdateCourseRequest } from './models/types';
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   console.log('Request:', JSON.stringify(event, null, 2));
@@ -31,11 +32,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     if (path.includes('/admin/courses')) {
-      // TODO: Implement course management
-      return createCorsResponse(501, {
-        success: false,
-        message: 'Course management not yet implemented',
-      });
+      return await handleCourseRequests(httpMethod, pathParameters, body, user.userId, queryStringParameters);
     }
 
     return createCorsResponse(404, {
@@ -149,6 +146,145 @@ async function handleDegreeRequests(
       return createCorsResponse(200, {
         success: true,
         message: 'Degree deleted successfully',
+      });
+    }
+
+    default:
+      return createCorsResponse(405, {
+        success: false,
+        message: 'Method not allowed',
+      });
+  }
+}
+
+/**
+ * Handle course-related requests
+ */
+async function handleCourseRequests(
+  method: string,
+  pathParameters: { [key: string]: string | undefined } | null,
+  body: string | null,
+  userId: string,
+  queryParams?: { [key: string]: string | undefined } | null
+): Promise<APIGatewayProxyResult> {
+  const courseId = pathParameters?.id;
+
+  switch (method) {
+    case 'POST': {
+      // Create course
+      const request: CreateCourseRequest = JSON.parse(body || '{}');
+      
+      if (!request.degreeId || !request.courseName || !request.courseCode) {
+        return createCorsResponse(400, {
+          success: false,
+          message: 'degreeId, courseName, and courseCode are required',
+        });
+      }
+
+      const course = await courseService.createCourse(request, userId);
+      
+      return createCorsResponse(201, {
+        success: true,
+        message: 'Course created successfully',
+        data: course,
+      });
+    }
+
+    case 'GET': {
+      if (courseId) {
+        // Get single course by ID
+        const course = await courseService.getCourseById(courseId);
+        
+        if (!course) {
+          return createCorsResponse(404, {
+            success: false,
+            message: 'Course not found',
+          });
+        }
+
+        return createCorsResponse(200, {
+          success: true,
+          data: course,
+        });
+      } else {
+        // List courses (by degree or university)
+        const degreeId = queryParams?.degreeId;
+        const universityDomain = queryParams?.universityDomain;
+        const courseCode = queryParams?.courseCode;
+
+        if (courseCode && universityDomain) {
+          // Get course by university and code
+          const course = await courseService.getCourseByCode(universityDomain, courseCode);
+          
+          if (!course) {
+            return createCorsResponse(404, {
+              success: false,
+              message: 'Course not found',
+            });
+          }
+
+          return createCorsResponse(200, {
+            success: true,
+            data: course,
+          });
+        } else if (degreeId) {
+          // List courses by degree
+          const courses = await courseService.listCoursesByDegree(degreeId);
+          
+          return createCorsResponse(200, {
+            success: true,
+            data: courses,
+          });
+        } else if (universityDomain) {
+          // List courses by university
+          const courses = await courseService.listCoursesByUniversity(universityDomain);
+          
+          return createCorsResponse(200, {
+            success: true,
+            data: courses,
+          });
+        } else {
+          return createCorsResponse(400, {
+            success: false,
+            message: 'degreeId or universityDomain query parameter is required',
+          });
+        }
+      }
+    }
+
+    case 'PUT': {
+      // Update course
+      if (!courseId) {
+        return createCorsResponse(400, {
+          success: false,
+          message: 'courseId is required',
+        });
+      }
+
+      const updates: UpdateCourseRequest = JSON.parse(body || '{}');
+      const course = await courseService.updateCourse(courseId, updates);
+
+      return createCorsResponse(200, {
+        success: true,
+        message: 'Course updated successfully',
+        data: course,
+      });
+    }
+
+    case 'DELETE': {
+      // Delete course (soft delete)
+      if (!courseId) {
+        return createCorsResponse(400, {
+          success: false,
+          message: 'courseId is required',
+        });
+      }
+
+      await courseService.deleteCourse(courseId);
+
+      return createCorsResponse(200, {
+        success: true,
+        message: 'Course deleted successfully',
       });
     }
 

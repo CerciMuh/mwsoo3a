@@ -52,10 +52,10 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
  */
 async function handleDegreeRequests(
   method: string,
-  pathParameters: Record<string, string> | null,
+  pathParameters: { [key: string]: string | undefined } | null,
   body: string | null,
   userId: string,
-  queryParams?: Record<string, string> | null
+  queryParams?: { [key: string]: string | undefined } | null
 ): Promise<APIGatewayProxyResult> {
   const degreeId = pathParameters?.id;
 

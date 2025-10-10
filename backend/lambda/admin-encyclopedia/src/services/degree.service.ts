@@ -102,8 +102,10 @@ export async function listDegreesByUniversity(universityDomain: string): Promise
     new QueryCommand({
       TableName: DEGREES_TABLE,
       KeyConditionExpression: 'universityDomain = :domain',
+      FilterExpression: 'active = :active',
       ExpressionAttributeValues: {
         ':domain': universityDomain,
+        ':active': true,
       },
     })
   );

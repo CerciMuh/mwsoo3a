@@ -4,7 +4,7 @@
 
 import { PutCommand, GetCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { docClient } from '../config/aws-clients';
-import { COURSES_TABLE } from '../config/environment';
+import { COURSES_TABLE, DEGREES_TABLE } from '../config/environment';
 import { Course, CreateCourseRequest, UpdateCourseRequest } from '../models/types';
 import { slugify, now } from '../utils/helpers';
 import { AppError } from '../utils/errors';
@@ -63,8 +63,8 @@ export async function createCourse(
     })
   );
 
-  // TODO: Increment courseCount in UniversityDegrees table
-  // This will be done in a future update
+  // Increment courseCount in UniversityDegrees table
+  await incrementCourseCount(degree.universityDomain, degree.degreeSlug, 1);
 
   return course;
 }
@@ -98,8 +98,10 @@ export async function getCourseById(courseId: string): Promise<Course | null> {
       TableName: COURSES_TABLE,
       IndexName: 'courseId-index',
       KeyConditionExpression: 'id = :id',
+      FilterExpression: 'active = :active',
       ExpressionAttributeValues: {
         ':id': courseId,
+        ':active': true,
       },
     })
   );
@@ -115,8 +117,10 @@ export async function listCoursesByDegree(degreeId: string): Promise<Course[]> {
     new QueryCommand({
       TableName: COURSES_TABLE,
       KeyConditionExpression: 'degreeId = :degreeId',
+      FilterExpression: 'active = :active',
       ExpressionAttributeValues: {
         ':degreeId': degreeId,
+        ':active': true,
       },
     })
   );
@@ -133,8 +137,10 @@ export async function listCoursesByUniversity(universityDomain: string): Promise
       TableName: COURSES_TABLE,
       IndexName: 'universityDomain-courseCode-index',
       KeyConditionExpression: 'universityDomain = :domain',
+      FilterExpression: 'active = :active',
       ExpressionAttributeValues: {
         ':domain': universityDomain,
+        ':active': true,
       },
     })
   );
@@ -154,9 +160,11 @@ export async function getCourseByCode(
       TableName: COURSES_TABLE,
       IndexName: 'universityDomain-courseCode-index',
       KeyConditionExpression: 'universityDomain = :domain AND courseCode = :code',
+      FilterExpression: 'active = :active',
       ExpressionAttributeValues: {
         ':domain': universityDomain,
         ':code': courseCode,
+        ':active': true,
       },
     })
   );
@@ -286,6 +294,32 @@ export async function deleteCourse(courseId: string): Promise<void> {
     })
   );
 
-  // TODO: Decrement courseCount in UniversityDegrees table
-  // This will be done in a future update
+  // Decrement courseCount in UniversityDegrees table
+  const degree = await getDegreeById(existing.degreeId);
+  if (degree) {
+    await incrementCourseCount(degree.universityDomain, degree.degreeSlug, -1);
+  }
+}
+
+/**
+ * Helper function to increment/decrement courseCount in UniversityDegrees table
+ */
+async function incrementCourseCount(
+  universityDomain: string,
+  degreeSlug: string,
+  increment: number
+): Promise<void> {
+  await docClient.send(
+    new UpdateCommand({
+      TableName: DEGREES_TABLE,
+      Key: {
+        universityDomain,
+        degreeSlug,
+      },
+      UpdateExpression: 'ADD courseCount :inc',
+      ExpressionAttributeValues: {
+        ':inc': increment,
+      },
+    })
+  );
 }

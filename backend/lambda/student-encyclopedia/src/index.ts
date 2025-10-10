@@ -19,7 +19,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
   try {
     // Require student authentication for all requests
-    const student = requireStudent(event);
+    const student = await requireStudent(event);
     console.log('Authenticated student:', student.email, 'from', student.universityDomain);
 
     const { httpMethod, path, pathParameters } = event;

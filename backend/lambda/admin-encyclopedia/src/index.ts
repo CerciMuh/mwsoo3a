@@ -7,9 +7,10 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { createOptionsResponse, createCorsResponse } from './middleware/cors';
 import { requireAdmin } from './middleware/auth';
 import { handleError } from './utils/errors';
+import { validateCreateDegreeRequest, validateUpdateDegreeRequest, validateCreateCourseRequest, validateUpdateCourseRequest } from './utils/validation';
 import * as degreeService from './services/degree.service';
 import * as courseService from './services/course.service';
-import { CreateDegreeRequest, UpdateDegreeRequest, CreateCourseRequest, UpdateCourseRequest } from './models/types';
+import { CreateDegreeRequest, UpdateDegreeRequest, CreateCourseRequest, UpdateCourseRequest, AuthUser } from './models/types';
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   console.log('Request:', JSON.stringify(event, null, 2));
@@ -21,18 +22,17 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
   try {
     // Require admin authorization for all requests
-    const user = requireAdmin(event);
-    console.log('Authorized admin:', user.email);
+    const user = await requireAdmin(event);
 
     const { httpMethod, path, pathParameters, body, queryStringParameters } = event;
 
     // Route requests
     if (path.includes('/admin/degrees')) {
-      return await handleDegreeRequests(httpMethod, pathParameters, body, user.userId, queryStringParameters);
+      return await handleDegreeRequests(httpMethod, pathParameters, body, user, queryStringParameters);
     }
 
     if (path.includes('/admin/courses')) {
-      return await handleCourseRequests(httpMethod, pathParameters, body, user.userId, queryStringParameters);
+      return await handleCourseRequests(httpMethod, pathParameters, body, user, queryStringParameters);
     }
 
     return createCorsResponse(404, {
@@ -51,7 +51,7 @@ async function handleDegreeRequests(
   method: string,
   pathParameters: { [key: string]: string | undefined } | null,
   body: string | null,
-  userId: string,
+  user: AuthUser,
   queryParams?: { [key: string]: string | undefined } | null
 ): Promise<APIGatewayProxyResult> {
   const degreeId = pathParameters?.id;
@@ -61,14 +61,18 @@ async function handleDegreeRequests(
       // Create degree
       const request: CreateDegreeRequest = JSON.parse(body || '{}');
       
-      if (!request.universityDomain || !request.degreeName) {
-        return createCorsResponse(400, {
+      // Validate input
+      validateCreateDegreeRequest(request);
+
+      // Authorization: Verify admin can only create degrees for their university
+      if (request.universityDomain !== user.universityDomain) {
+        return createCorsResponse(403, {
           success: false,
-          message: 'universityDomain and degreeName are required',
+          message: 'You can only create degrees for your own university',
         });
       }
 
-      const degree = await degreeService.createDegree(request, userId);
+      const degree = await degreeService.createDegree(request, user.userId);
       
       return createCorsResponse(201, {
         success: true,
@@ -123,6 +127,26 @@ async function handleDegreeRequests(
       }
 
       const updates: UpdateDegreeRequest = JSON.parse(body || '{}');
+      
+      // Validate input
+      validateUpdateDegreeRequest(updates);
+
+      // Authorization: Get existing degree and verify admin's university
+      const existingDegree = await degreeService.getDegreeById(degreeId);
+      if (!existingDegree) {
+        return createCorsResponse(404, {
+          success: false,
+          message: 'Degree not found',
+        });
+      }
+
+      if (existingDegree.universityDomain !== user.universityDomain) {
+        return createCorsResponse(403, {
+          success: false,
+          message: 'You can only update degrees for your own university',
+        });
+      }
+      
       const degree = await degreeService.updateDegree(degreeId, updates);
 
       return createCorsResponse(200, {
@@ -138,6 +162,22 @@ async function handleDegreeRequests(
         return createCorsResponse(400, {
           success: false,
           message: 'degreeId is required',
+        });
+      }
+
+      // Authorization: Get existing degree and verify admin's university
+      const existingDegree = await degreeService.getDegreeById(degreeId);
+      if (!existingDegree) {
+        return createCorsResponse(404, {
+          success: false,
+          message: 'Degree not found',
+        });
+      }
+
+      if (existingDegree.universityDomain !== user.universityDomain) {
+        return createCorsResponse(403, {
+          success: false,
+          message: 'You can only delete degrees for your own university',
         });
       }
 
@@ -164,7 +204,7 @@ async function handleCourseRequests(
   method: string,
   pathParameters: { [key: string]: string | undefined } | null,
   body: string | null,
-  userId: string,
+  user: AuthUser,
   queryParams?: { [key: string]: string | undefined } | null
 ): Promise<APIGatewayProxyResult> {
   const courseId = pathParameters?.id;
@@ -174,14 +214,26 @@ async function handleCourseRequests(
       // Create course
       const request: CreateCourseRequest = JSON.parse(body || '{}');
       
-      if (!request.degreeId || !request.courseName || !request.courseCode) {
-        return createCorsResponse(400, {
+      // Validate input
+      validateCreateCourseRequest(request);
+
+      // Authorization: Get degree and verify admin's university
+      const degree = await degreeService.getDegreeById(request.degreeId);
+      if (!degree) {
+        return createCorsResponse(404, {
           success: false,
-          message: 'degreeId, courseName, and courseCode are required',
+          message: 'Degree not found',
         });
       }
 
-      const course = await courseService.createCourse(request, userId);
+      if (degree.universityDomain !== user.universityDomain) {
+        return createCorsResponse(403, {
+          success: false,
+          message: 'You can only create courses for degrees at your own university',
+        });
+      }
+
+      const course = await courseService.createCourse(request, user.userId);
       
       return createCorsResponse(201, {
         success: true,
@@ -262,6 +314,26 @@ async function handleCourseRequests(
       }
 
       const updates: UpdateCourseRequest = JSON.parse(body || '{}');
+      
+      // Validate input
+      validateUpdateCourseRequest(updates);
+
+      // Authorization: Get existing course and verify admin's university
+      const existingCourse = await courseService.getCourseById(courseId);
+      if (!existingCourse) {
+        return createCorsResponse(404, {
+          success: false,
+          message: 'Course not found',
+        });
+      }
+
+      if (existingCourse.universityDomain !== user.universityDomain) {
+        return createCorsResponse(403, {
+          success: false,
+          message: 'You can only update courses at your own university',
+        });
+      }
+      
       const course = await courseService.updateCourse(courseId, updates);
 
       return createCorsResponse(200, {
@@ -277,6 +349,22 @@ async function handleCourseRequests(
         return createCorsResponse(400, {
           success: false,
           message: 'courseId is required',
+        });
+      }
+
+      // Authorization: Get existing course and verify admin's university
+      const existingCourse = await courseService.getCourseById(courseId);
+      if (!existingCourse) {
+        return createCorsResponse(404, {
+          success: false,
+          message: 'Course not found',
+        });
+      }
+
+      if (existingCourse.universityDomain !== user.universityDomain) {
+        return createCorsResponse(403, {
+          success: false,
+          message: 'You can only delete courses at your own university',
         });
       }
 

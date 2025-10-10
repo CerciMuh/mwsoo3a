@@ -1,0 +1,183 @@
+<div class="admin-courses">
+  <div class="header">
+    <h1>Course Management</h1>
+    <div class="actions">
+      <select [(ngModel)]="selectedUniversity" (change)="onUniversityChange()" class="filter-select">
+        <option *ngFor="let uni of universities" [value]="uni.domain">
+          {{ uni.name }}
+        </option>
+      </select>
+      <select [(ngModel)]="selectedDegree" (change)="onDegreeChange()" class="filter-select" *ngIf="degrees.length > 0">
+        <option [value]="null">All Degrees</option>
+        <option *ngFor="let degree of degrees" [value]="degree.id">
+          {{ degree.degreeName }}
+        </option>
+      </select>
+      <button class="btn btn-primary" (click)="openCreateForm()" [disabled]="loading || degrees.length === 0">
+        + Add Course
+      </button>
+    </div>
+  </div>
+
+  <div class="alerts">
+    <div class="alert alert-success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+    <div class="alert alert-error" *ngIf="error">
+      {{ error }}
+    </div>
+  </div>
+
+  <!-- Course Form -->
+  <div class="form-modal" *ngIf="showForm">
+    <div class="form-container">
+      <div class="form-header">
+        <h2>{{ editingCourse ? 'Edit Course' : 'Create New Course' }}</h2>
+        <button class="btn-close" (click)="cancelForm()">×</button>
+      </div>
+
+      <form [formGroup]="courseForm" (ngSubmit)="saveCourse()">
+        <div class="form-group">
+          <label>Degree *</label>
+          <select formControlName="degreeId" [disabled]="editingCourse !== null">
+            <option *ngFor="let degree of degrees" [value]="degree.id">
+              {{ degree.degreeName }} ({{ degree.degreeType }})
+            </option>
+          </select>
+          <div class="error" *ngIf="courseForm.get('degreeId')?.invalid && courseForm.get('degreeId')?.touched">
+            Degree is required
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Course Code *</label>
+            <input type="text" formControlName="courseCode" placeholder="e.g., COMP10120">
+            <div class="error" *ngIf="courseForm.get('courseCode')?.invalid && courseForm.get('courseCode')?.touched">
+              Course code is required
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Credits *</label>
+            <input type="number" formControlName="credits" min="1" max="60">
+            <div class="error" *ngIf="courseForm.get('credits')?.invalid && courseForm.get('credits')?.touched">
+              Credits must be between 1 and 60
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Course Name *</label>
+          <input type="text" formControlName="courseName" placeholder="e.g., Introduction to Programming">
+          <div class="error" *ngIf="courseForm.get('courseName')?.invalid && courseForm.get('courseName')?.touched">
+            Course name is required
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea formControlName="description" rows="4" placeholder="Describe the course content and objectives..."></textarea>
+          <div class="error" *ngIf="courseForm.get('description')?.invalid && courseForm.get('description')?.touched">
+            Description is required
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Year *</label>
+            <select formControlName="year">
+              <option [value]="1">1st Year</option>
+              <option [value]="2">2nd Year</option>
+              <option [value]="3">3rd Year</option>
+              <option [value]="4">4th Year</option>
+              <option [value]="5">5th Year</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Semester *</label>
+            <select formControlName="semester">
+              <option value="fall">Fall</option>
+              <option value="spring">Spring</option>
+              <option value="summer">Summer</option>
+              <option value="full-year">Full Year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Professor</label>
+          <input type="text" formControlName="professor" placeholder="e.g., Dr. John Smith">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cancelForm()" [disabled]="loading">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="courseForm.invalid || loading">
+            {{ loading ? 'Saving...' : (editingCourse ? 'Update Course' : 'Create Course') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Courses List -->
+  <div class="courses-list" *ngIf="!loading && !showForm">
+    <div class="empty-state" *ngIf="courses.length === 0 && degrees.length > 0">
+      <p>No courses found {{ selectedDegree ? 'for this degree' : 'for this university' }}.</p>
+      <button class="btn btn-primary" (click)="openCreateForm()">Create Your First Course</button>
+    </div>
+
+    <div class="empty-state" *ngIf="degrees.length === 0">
+      <p>No degrees found for this university.</p>
+      <p>Please create a degree first before adding courses.</p>
+    </div>
+
+    <div class="course-table" *ngIf="courses.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Degree</th>
+            <th>Year</th>
+            <th>Semester</th>
+            <th>Credits</th>
+            <th>Professor</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let course of courses">
+            <td class="code">{{ course.courseCode }}</td>
+            <td class="name">{{ course.courseName }}</td>
+            <td class="degree">{{ getDegreeName(course.degreeId) }}</td>
+            <td class="year">Year {{ course.year }}</td>
+            <td class="semester">
+              <span class="badge semester-{{ course.semester }}">{{ course.semester }}</span>
+            </td>
+            <td class="credits">{{ course.credits }}</td>
+            <td class="professor">{{ course.professor || '-' }}</td>
+            <td class="notes-count">{{ course.noteCount || 0 }}</td>
+            <td class="actions">
+              <button class="btn btn-sm btn-secondary" (click)="openEditForm(course)">
+                Edit
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="deleteCourse(course)">
+                Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="loading-state" *ngIf="loading && !showForm">
+    <div class="spinner"></div>
+    <p>Loading courses...</p>
+  </div>
+</div>

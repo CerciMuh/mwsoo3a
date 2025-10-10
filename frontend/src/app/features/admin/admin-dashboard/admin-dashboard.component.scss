@@ -1,0 +1,129 @@
+.admin-dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+
+  .sidebar {
+    width: 260px;
+    background: #2c3e50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+
+    .logo {
+      padding: 2rem 1.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+    }
+
+    .nav-menu {
+      flex: 1;
+      padding: 1rem 0;
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: all 0.2s;
+        position: relative;
+
+        .icon {
+          font-size: 1.5rem;
+          margin-right: 1rem;
+        }
+
+        .label {
+          font-size: 1rem;
+          font-weight: 500;
+        }
+
+        .coming-soon {
+          margin-left: auto;
+          font-size: 0.7rem;
+          background: #e74c3c;
+          padding: 0.2rem 0.5rem;
+          border-radius: 10px;
+        }
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+        }
+
+        &.active {
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          border-left: 4px solid #3498db;
+
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #3498db;
+          }
+        }
+      }
+    }
+  }
+
+  .main-content {
+    flex: 1;
+    margin-left: 260px;
+    background: #f5f5f5;
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard {
+    .sidebar {
+      width: 80px;
+
+      .logo {
+        h2 {
+          font-size: 1rem;
+          text-align: center;
+        }
+      }
+
+      .nav-menu {
+        .nav-item {
+          flex-direction: column;
+          padding: 1rem 0.5rem;
+          text-align: center;
+
+          .icon {
+            margin-right: 0;
+            margin-bottom: 0.25rem;
+          }
+
+          .label {
+            font-size: 0.75rem;
+          }
+
+          .coming-soon {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .main-content {
+      margin-left: 80px;
+    }
+  }
+}

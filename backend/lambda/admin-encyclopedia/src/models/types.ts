@@ -2,6 +2,9 @@
  * TypeScript type definitions for Encyclopedia entities
  */
 
+// Degree types
+export type DegreeType = 'undergraduate' | 'postgraduate' | 'doctorate' | 'certificate';
+
 // Degree entity
 export interface Degree {
   id: string;
@@ -11,7 +14,7 @@ export interface Degree {
   degreeName: string;
   degreeSlug: string;
   description?: string;
-  degreeType?: 'Undergraduate' | 'Graduate' | 'PhD' | 'Certificate';
+  degreeType: DegreeType;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -74,13 +77,13 @@ export interface CreateDegreeRequest {
   universityDomain: string;
   degreeName: string;
   description?: string;
-  degreeType?: 'Undergraduate' | 'Graduate' | 'PhD' | 'Certificate';
+  degreeType: DegreeType;
 }
 
 export interface UpdateDegreeRequest {
   degreeName?: string;
   description?: string;
-  degreeType?: 'Undergraduate' | 'Graduate' | 'PhD' | 'Certificate';
+  degreeType?: DegreeType;
   active?: boolean;
 }
 

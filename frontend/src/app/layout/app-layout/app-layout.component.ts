@@ -19,6 +19,10 @@ export class AppLayoutComponent {
     return this.auth.isStudent();
   }
 
+  protected isAdmin(): boolean {
+    return this.auth.isAdmin();
+  }
+
   protected onLogout(): void {
     this.auth.logout();
   }

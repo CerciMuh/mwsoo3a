@@ -156,13 +156,30 @@ export class AuthService {
       const payload = currentSession.getIdToken().decodePayload();
       return payload['custom:userType'] || null;
     } catch (error) {
-      console.error('Failed to decode ID token:', error);
+      return null;
+    }
+  }
+
+  getUserRole(): 'admin' | 'student' | null {
+    const currentSession = this.session();
+    if (!currentSession || !currentSession.isValid()) {
+      return null;
+    }
+
+    try {
+      const payload = currentSession.getIdToken().decodePayload();
+      return payload['custom:role'] || null;
+    } catch (error) {
       return null;
     }
   }
 
   isStudent(): boolean {
     return this.getUserType() === 'student';
+  }
+
+  isAdmin(): boolean {
+    return this.getUserRole() === 'admin';
   }
 
   private async ensureSession(): Promise<boolean> {

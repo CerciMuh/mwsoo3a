@@ -4,6 +4,20 @@
   <ng-container *ngIf="user$ | async as user; else guest">
     <h2 class="h6">Signed in as</h2>
     <p class="mb-3">{{ user.email || user.name }}</p>
+    
+    <!-- Quick Actions -->
+    <div class="mb-3">
+      <h3 class="h6 text-muted mb-2">Quick Actions</h3>
+      <div class="d-flex gap-2">
+        <a *ngIf="isAdmin()" routerLink="/admin" class="btn btn-primary btn-sm">
+          🎓 Admin Panel
+        </a>
+        <a *ngIf="isStudent()" routerLink="/university" class="btn btn-primary btn-sm">
+          📚 My University
+        </a>
+      </div>
+    </div>
+    
     <h3 class="h6 text-muted">Profile details</h3>
     <pre class="bg-light border rounded-3 p-3 small mb-0">{{ user | json }}</pre>
   </ng-container>

@@ -9,12 +9,17 @@
     "zip": "powershell -Command \"if (Test-Path lambda.zip) { Remove-Item lambda.zip }; Compress-Archive -Path dist/*,node_modules -DestinationPath lambda.zip\"",
     "deploy": "aws lambda update-function-code --function-name AdminEncyclopedia --zip-file fileb://lambda.zip --region eu-central-1 --profile mwsoo3a"
   },
-  "keywords": ["lambda", "dynamodb", "admin"],
+  "keywords": [
+    "lambda",
+    "dynamodb",
+    "admin"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.645.0",
     "@aws-sdk/lib-dynamodb": "^3.645.0",
+    "aws-jwt-verify": "^4.0.1",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

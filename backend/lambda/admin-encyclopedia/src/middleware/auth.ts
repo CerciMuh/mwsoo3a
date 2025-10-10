@@ -3,12 +3,21 @@
  */
 
 import { APIGatewayProxyEvent } from 'aws-lambda';
+import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { AuthUser, TokenPayload } from '../models/types';
+import { USER_POOL_ID, CLIENT_ID } from '../config/environment';
+
+// Create JWT verifier instance
+const verifier = CognitoJwtVerifier.create({
+  userPoolId: USER_POOL_ID,
+  tokenUse: "id",
+  clientId: CLIENT_ID,
+});
 
 /**
- * Extract and decode JWT token from Authorization header
+ * Extract and verify JWT token from Authorization header
  */
-export function extractToken(event: APIGatewayProxyEvent): TokenPayload {
+export async function extractToken(event: APIGatewayProxyEvent): Promise<TokenPayload> {
   const authHeader = event.headers.Authorization || event.headers.authorization;
   
   if (!authHeader) {
@@ -21,24 +30,19 @@ export function extractToken(event: APIGatewayProxyEvent): TokenPayload {
     : authHeader;
 
   try {
-    // Decode JWT payload (base64 decode the middle part)
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid token format');
-    }
-
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-    return payload as TokenPayload;
+    // Verify and decode JWT token
+    const payload = await verifier.verify(token);
+    return payload as unknown as TokenPayload;
   } catch (error) {
-    throw new Error('Invalid token');
+    throw new Error('Invalid or expired token');
   }
 }
 
 /**
  * Verify user has admin role
  */
-export function requireAdmin(event: APIGatewayProxyEvent): AuthUser {
-  const token = extractToken(event);
+export async function requireAdmin(event: APIGatewayProxyEvent): Promise<AuthUser> {
+  const token = await extractToken(event);
   
   if (token['custom:role'] !== 'admin') {
     throw new Error('Admin access required');
